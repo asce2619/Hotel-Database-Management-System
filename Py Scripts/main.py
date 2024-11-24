@@ -3,14 +3,27 @@ from tkinter import *
 from tkinter import ttk  # For dropdown functionality
 import cx_Oracle
 import pandas as pd
+import customtkinter as ctk
 
 # Initialize Oracle client
 cx_Oracle.init_oracle_client(lib_dir="/Users/n/Hotel DBMS/Hotel-Database-Management-System/oracle_client")
 
-# Create main root window
-root = Tk()
-root.title('Hotel DBMS GUI')
-root.geometry("600x400")
+
+# Set the appearance mode and color theme
+ctk.set_appearance_mode("System")  # Modes: "System" (default), "Dark", "Light"
+ctk.set_default_color_theme("blue")  # Themes: "blue" (default), "dark-blue", "green"
+
+# Initialize the root window
+root = ctk.CTk()
+root.title("Hotel Database Management GUI")
+root.geometry("1200x1200")  # Default size
+root.minsize(800, 600)      # Set a minimum window size
+root.maxsize(1920, 1080)    # Optionally set a maximum window size
+
+# Configure grid for responsive layout
+root.grid_rowconfigure(0, weight=1)
+root.grid_columnconfigure(0, weight=1)
+
 
 CREATE_TABLES_SQL = [
     """CREATE TABLE Hotel (
@@ -200,15 +213,20 @@ INSERT_DATA_SQL = {
 
 # Creating application frames
 login_frame = Frame(root)
-main_frame = Frame(root)
-create_frame = Frame(root)
-drop_frame = Frame(root)
-insert_frame = Frame(root)
-query_frame = Frame(root)  
-advance_query_frame = Frame(root) 
-update_frame = Frame(root)  # New 
+login_frame = ctk.CTkFrame(root)
+main_frame = ctk.CTkFrame(root)
+create_frame = ctk.CTkFrame(root)
+drop_frame = ctk.CTkFrame(root)
+insert_frame = ctk.CTkFrame(root)
+query_frame = ctk.CTkFrame(root)
+advance_query_frame = ctk.CTkFrame(root)
+update_frame = ctk.CTkFrame(root)
+show_table_frame = ctk.CTkFrame(root)
 
-
+import customtkinter as ctk
+from tkinter import messagebox, Toplevel, Text, Scrollbar, END, RIGHT, BOTTOM, VERTICAL, HORIZONTAL, BOTH, NONE
+import pandas as pd
+import cx_Oracle
 
 # Function to raise frames
 def raise_frame(frame):
@@ -226,22 +244,22 @@ def connect_to_db():
             dsn="(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=oracle.scs.ryerson.ca)(PORT=1521))(CONNECT_DATA=(SID=orcl)))"
         )
         cursor = connection.cursor()
-        feedback_label.config(text="Login successful!", fg="green")
+        feedback_label.configure(text="Login successful!", text_color="green")
         raise_frame(main_frame)
     except cx_Oracle.DatabaseError as e:
         error, = e.args
-        feedback_label.config(text=f"Error: {error.message}", fg="red")
+        feedback_label.configure(text=f"Error: {error.message}", text_color="red")
 
-# Function to create tables
+# Functions for CRUD operations
 def create_tables():
     try:
         for sql in CREATE_TABLES_SQL:
             cursor.execute(sql)
         connection.commit()
-        feedback_create.config(text="Tables created successfully!", fg="green")
+        feedback_create.configure(text="Tables created successfully!", text_color="green")
     except cx_Oracle.DatabaseError as e:
         error, = e.args
-        feedback_create.config(text=f"Error: {error.message}", fg="red")
+        feedback_create.configure(text=f"Error: {error.message}", text_color="red")
 
 # Function to drop tables
 def drop_tables():
@@ -249,10 +267,10 @@ def drop_tables():
         for sql in DROP_TABLES_SQL:
             cursor.execute(sql)
         connection.commit()
-        feedback_drop.config(text="Tables dropped successfully!", fg="green")
+        feedback_drop.configure(text="Tables dropped successfully!", text_color="green")
     except cx_Oracle.DatabaseError as e:
         error, = e.args
-        feedback_drop.config(text=f"Error: {error.message}", fg="red")
+        feedback_drop.configure(text=f"Error: {error.message}", text_color="red")
 
 # Function to insert data into all tables
 def insert_data_into_all_tables():
@@ -261,152 +279,149 @@ def insert_data_into_all_tables():
             for query in queries:
                 cursor.execute(query)
         connection.commit()
-        feedback_insert_all.config(text="Data inserted into all tables successfully!", fg="green")
+        feedback_insert_all.configure(text="Data inserted into all tables successfully!", text_color="green")
     except cx_Oracle.DatabaseError as e:
-        feedback_insert_all.config(text=f"Error: {e}", fg="red")
+        error, = e.args
+        feedback_insert_all.configure(text=f"Error: {error.message}", text_color="red")
 
-
- 
 # Function to insert data into selected table
 def insert_data_into_selected_table():
     selected_table = table_dropdown.get()
     if selected_table == "Select a table":
-        feedback_table_insert.config(text="Please select a table!", fg="red")
+        feedback_table_insert.configure(text="Please select a table!", text_color="red")
         return
     try:
         for query in INSERT_DATA_SQL.get(selected_table, []):
             cursor.execute(query)
         connection.commit()
-        feedback_table_insert.config(text=f"Data inserted into {selected_table} successfully!", fg="green")
+        feedback_table_insert.configure(text=f"Data inserted into {selected_table} successfully!", text_color="green")
     except cx_Oracle.DatabaseError as e:
         error, = e.args
-        feedback_table_insert.config(text=f"Error: {error.message}", fg="red")
+        feedback_table_insert.configure(text=f"Error: {error.message}", text_color="red")
 
-
+# Function to query data
 def query_data():
     selected_table = query_table_dropdown.get()
     if selected_table == "Select a table":
-        feedback_query.config(text="Please select a table to query!", fg="red")
+        feedback_query.configure(text="Please select a table to query!", text_color="red")
         return
     try:
         cursor.execute(f"SELECT * FROM {selected_table}")
         rows = cursor.fetchall()
-        columns = [desc[0] for desc in cursor.description]  # Extract column names
+        columns = [desc[0] for desc in cursor.description]
         
         if rows:
-            # Use pandas to create a DataFrame
             df = pd.DataFrame(rows, columns=columns)
-
-            # Display DataFrame in a new window
-            result_window = Toplevel(root)
+            result_window = ctk.CTkToplevel(root)
             result_window.title(f"Data from {selected_table}")
             result_window.geometry("800x400")
 
-            text = Text(result_window, wrap=NONE)
+            text = ctk.CTkTextbox(result_window, wrap=NONE)
             text.pack(fill=BOTH, expand=True)
-            text.insert(END, df.to_string(index=False))  # Insert tabular data into the Text widget
+            text.insert(END, df.to_string(index=False))
 
-            # Add scrollbars
-            scrollbar_y = Scrollbar(result_window, orient=VERTICAL, command=text.yview)
-            scrollbar_y.pack(side=RIGHT, fill=Y)
-            scrollbar_x = Scrollbar(result_window, orient=HORIZONTAL, command=text.xview)
-            scrollbar_x.pack(side=BOTTOM, fill=X)
-            text.config(yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+            scrollbar_y = ctk.CTkScrollbar(result_window, orientation=VERTICAL, command=text.yview)
+            scrollbar_y.pack(side=RIGHT, fill=ctk.Y)
+            scrollbar_x = ctk.CTkScrollbar(result_window, orientation=HORIZONTAL, command=text.xview)
+            scrollbar_x.pack(side=BOTTOM, fill=ctk.X)
+            text.configure(yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
 
-            feedback_query.config(text="Query executed successfully!", fg="green")
+            feedback_query.configure(text="Query executed successfully!", text_color="green")
         else:
-            feedback_query.config(text="No data found for the query.", fg="red")
+            feedback_query.configure(text="No data found for the query.", text_color="red")
     except cx_Oracle.DatabaseError as e:
         error, = e.args
-        feedback_query.config(text=f"Error: {error.message}", fg="red")
+        feedback_query.configure(text=f"Error: {error.message}", text_color="red")
 
+# Function to run advanced query
 def advance_query_data():
     query = custom_query_entry.get("1.0", END).strip()
     if not query:
-        feedback_advance_query.config(text="Please enter a query!", fg="red")
+        feedback_advance_query.configure(text="Please enter a query!", text_color="red")
         return
     try:
         cursor.execute(query)
         rows = cursor.fetchall()
-        columns = [desc[0] for desc in cursor.description]  # Extract column names
+        columns = [desc[0] for desc in cursor.description]
         
         if rows:
-            # Use pandas to create a DataFrame
             df = pd.DataFrame(rows, columns=columns)
-
-            # Display DataFrame in a new window
-            result_window = Toplevel(root)
+            result_window = ctk.CTkToplevel(root)
             result_window.title("Advanced Query Results")
             result_window.geometry("800x400")
 
-            text = Text(result_window, wrap=NONE)
+            text = ctk.CTkTextbox(result_window, wrap=NONE)
             text.pack(fill=BOTH, expand=True)
-            text.insert(END, df.to_string(index=False))  # Insert tabular data into the Text widget
+            text.insert(END, df.to_string(index=False))
 
-            # Add scrollbars
-            scrollbar_y = Scrollbar(result_window, orient=VERTICAL, command=text.yview)
-            scrollbar_y.pack(side=RIGHT, fill=Y)
-            scrollbar_x = Scrollbar(result_window, orient=HORIZONTAL, command=text.xview)
-            scrollbar_x.pack(side=BOTTOM, fill=X)
-            text.config(yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+            scrollbar_y = ctk.CTkScrollbar(result_window, orientation=VERTICAL, command=text.yview)
+            scrollbar_y.pack(side=RIGHT, fill=ctk.Y)
+            scrollbar_x = ctk.CTkScrollbar(result_window, orientation=HORIZONTAL, command=text.xview)
+            scrollbar_x.pack(side=BOTTOM, fill=ctk.X)
+            text.configure(yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
 
-            feedback_advance_query.config(text="Query executed successfully!", fg="green")
+            feedback_advance_query.configure(text="Query executed successfully!", text_color="green")
         else:
-            feedback_advance_query.config(text="No data found for the query.", fg="red")
+            feedback_advance_query.configure(text="No data found for the query.", text_color="red")
     except cx_Oracle.DatabaseError as e:
         error, = e.args
-        feedback_advance_query.config(text=f"Error: {error.message}", fg="red")
+        feedback_advance_query.configure(text=f"Error: {error.message}", text_color="red")
 
 def update_data():
     selected_table = update_table_dropdown.get()
-    update_query = update_query_entry.get("1.0", END).strip()
+    update_query = update_query_entry.get("1.0", "end").strip()
+    
     if selected_table == "Select a table" or not update_query:
-        feedback_update.config(text="Please select a table and provide an update query!", fg="red")
+        feedback_update.configure(text="Please select a table and provide an update query!", text_color="red")
         return
+
     try:
         cursor.execute(update_query)
         connection.commit()
-        feedback_update.config(text=f"Record updated successfully in {selected_table}!", fg="green")
+        feedback_update.configure(text=f"Record updated successfully in {selected_table}!", text_color="green")
     except cx_Oracle.DatabaseError as e:
         error, = e.args
-        feedback_update.config(text=f"Error: {error.message}", fg="red")
+        feedback_update.configure(text=f"Error: {error.message}", text_color="red")
 
 def show_table_data():
     selected_table = show_table_dropdown.get()
     if selected_table == "Select a table":
-        feedback_show_table.config(text="Please select a table to display data!", fg="red")
+        feedback_show_table.configure(text="Please select a table to display data!", text_color="red")
         return
+    
     try:
+        # Execute query to fetch all data from the selected table
         cursor.execute(f"SELECT * FROM {selected_table}")
         rows = cursor.fetchall()
         columns = [desc[0] for desc in cursor.description]  # Extract column names
         
         if rows:
-            # Use pandas to create a DataFrame
+            # Create a DataFrame for better presentation
             df = pd.DataFrame(rows, columns=columns)
-
-            # Display DataFrame in a new window
-            result_window = Toplevel(root)
+            
+            # Create a new window to display the data
+            result_window = ctk.CTkToplevel(root)
             result_window.title(f"Data from {selected_table}")
             result_window.geometry("800x400")
-
-            text = Text(result_window, wrap=NONE)
-            text.pack(fill=BOTH, expand=True)
-            text.insert(END, df.to_string(index=False))  # Insert tabular data into the Text widget
-
+            
+            # Create a text widget to display the DataFrame
+            text_widget = ctk.CTkTextbox(result_window, wrap="none")
+            text_widget.pack(fill="both", expand=True)
+            text_widget.insert("end", df.to_string(index=False))
+            
             # Add scrollbars
-            scrollbar_y = Scrollbar(result_window, orient=VERTICAL, command=text.yview)
-            scrollbar_y.pack(side=RIGHT, fill=Y)
-            scrollbar_x = Scrollbar(result_window, orient=HORIZONTAL, command=text.xview)
-            scrollbar_x.pack(side=BOTTOM, fill=X)
-            text.config(yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
-
-            feedback_show_table.config(text="Data displayed successfully!", fg="green")
+            scrollbar_y = ctk.CTkScrollbar(result_window, orientation="vertical", command=text_widget.yview)
+            scrollbar_y.pack(side="right", fill="y")
+            scrollbar_x = ctk.CTkScrollbar(result_window, orientation="horizontal", command=text_widget.xview)
+            scrollbar_x.pack(side="bottom", fill="x")
+            text_widget.configure(yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+            
+            feedback_show_table.configure(text="Data displayed successfully!", text_color="green")
         else:
-            feedback_show_table.config(text="No data found for the selected table.", fg="red")
+            feedback_show_table.configure(text="No data found for the selected table.", text_color="red")
     except cx_Oracle.DatabaseError as e:
         error, = e.args
-        feedback_show_table.config(text=f"Error: {error.message}", fg="red")
+        feedback_show_table.configure(text=f"Error: {error.message}", text_color="red")
 
 
 # Logout and close connection
@@ -416,127 +431,123 @@ def logout():
         connection.close()
     except:
         pass
-    root.quit()
+    root.destroy()
 
-# GUI Layout for Login Frame
-Label(login_frame, text="Hotel DBMS Login", font=("Helvetica", 16)).pack(pady=20)
-Label(login_frame, text="Username:").pack()
-user_entry = Entry(login_frame, width=30)
+# Login Frame
+ctk.CTkLabel(login_frame, text="Hotel DBMS Login", font=ctk.CTkFont(size=20, weight="bold")).pack(pady=20)
+
+# Username Label and Entry
+ctk.CTkLabel(login_frame, text="Username:", font=ctk.CTkFont(size=14)).pack(pady=(10, 5))
+user_entry = ctk.CTkEntry(login_frame, width=250, placeholder_text="Enter your username")
 user_entry.pack(pady=5)
-Label(login_frame, text="Password:").pack()
-pwd_entry = Entry(login_frame, show='*', width=30)
+
+# Password Label and Entry
+ctk.CTkLabel(login_frame, text="Password:", font=ctk.CTkFont(size=14)).pack(pady=(10, 5))
+pwd_entry = ctk.CTkEntry(login_frame, show="*", width=250, placeholder_text="Enter your password")
 pwd_entry.pack(pady=5)
-Button(login_frame, text="Login", command=connect_to_db).pack(pady=20)
-feedback_label = Label(login_frame, text="", fg="red")
+
+# Login Button
+ctk.CTkButton(login_frame, text="Login", command=connect_to_db, width=200, fg_color="#4CAF50").pack(pady=20)
+
+# Feedback Label
+feedback_label = ctk.CTkLabel(login_frame, text="", text_color="red", font=ctk.CTkFont(size=12))
 feedback_label.pack(pady=10)
 
-# GUI Layout for Main Frame
-# GUI Layout for Main Frame
-Label(main_frame, text="Hotel DBMS Main Menu", font=("Helvetica", 16)).pack(pady=20)
-Button(main_frame, text="Create Tables", command=lambda: raise_frame(create_frame)).pack(pady=10)
-Button(main_frame, text="Drop Tables", command=lambda: raise_frame(drop_frame)).pack(pady=10)
-Button(main_frame, text="Insert Data", command=lambda: raise_frame(insert_frame)).pack(pady=10)
-Button(main_frame, text="Query Data", command=lambda: raise_frame(query_frame)).pack(pady=10)
-Button(main_frame, text="Advance Query Data", command=lambda: raise_frame(advance_query_frame)).pack(pady=10)  # New
-Button(main_frame, text="Update Table", command=lambda: raise_frame(update_frame)).pack(pady=10)
-Button(main_frame, text="Show Table Data", command=lambda: raise_frame(show_table_frame)).pack(pady=10)
-Button(main_frame, text="Logout", command=logout).pack(pady=20)
 
-
+# GUI Layout for Main Frame
+ctk.CTkLabel(main_frame, text="Hotel DBMS Main Menu", font=ctk.CTkFont(size=20, weight="bold")).pack(pady=20)
+ctk.CTkButton(main_frame, text="Create Tables", command=lambda: raise_frame(create_frame), width=200).pack(pady=10)
+ctk.CTkButton(main_frame, text="Drop Tables", command=lambda: raise_frame(drop_frame), width=200).pack(pady=10)
+ctk.CTkButton(main_frame, text="Insert Data", command=lambda: raise_frame(insert_frame), width=200).pack(pady=10)
+ctk.CTkButton(main_frame, text="Query Data", command=lambda: raise_frame(query_frame), width=200).pack(pady=10)
+ctk.CTkButton(main_frame, text="Advance Query Data", command=lambda: raise_frame(advance_query_frame), width=200).pack(pady=10)
+ctk.CTkButton(main_frame, text="Update Table", command=lambda: raise_frame(update_frame), width=200).pack(pady=10)
+ctk.CTkButton(main_frame, text="Show Table Data", command=lambda: raise_frame(show_table_frame), width=200).pack(pady=10)
+ctk.CTkButton(main_frame, text="Logout", command=logout, width=200).pack(pady=20)
 
 # GUI Layout for Create Frame
-Label(create_frame, text="Create Tables", font=("Helvetica", 16)).pack(pady=20)
-Button(create_frame, text="Create All Tables", command=create_tables).pack(pady=10)
-feedback_create = Label(create_frame, text="", fg="green")
+ctk.CTkLabel(create_frame, text="Create Tables", font=ctk.CTkFont(size=20, weight="bold")).pack(pady=20)
+ctk.CTkButton(create_frame, text="Create All Tables", command=create_tables, width=200).pack(pady=10)
+feedback_create = ctk.CTkLabel(create_frame, text="", text_color="green")
 feedback_create.pack(pady=10)
-Button(create_frame, text="Back", command=lambda: raise_frame(main_frame)).pack(pady=20)
+ctk.CTkButton(create_frame, text="Back", command=lambda: raise_frame(main_frame), width=200).pack(pady=20)
 
 # GUI Layout for Drop Frame
-Label(drop_frame, text="Drop Tables", font=("Helvetica", 16)).pack(pady=20)
-Button(drop_frame, text="Drop All Tables", command=drop_tables).pack(pady=10)
-feedback_drop = Label(drop_frame, text="", fg="green")
+ctk.CTkLabel(drop_frame, text="Drop Tables", font=ctk.CTkFont(size=20, weight="bold")).pack(pady=20)
+ctk.CTkButton(drop_frame, text="Drop All Tables", command=drop_tables, width=200).pack(pady=10)
+feedback_drop = ctk.CTkLabel(drop_frame, text="", text_color="green")
 feedback_drop.pack(pady=10)
-Button(drop_frame, text="Back", command=lambda: raise_frame(main_frame)).pack(pady=20)
+ctk.CTkButton(drop_frame, text="Back", command=lambda: raise_frame(main_frame), width=200).pack(pady=20)
 
 # GUI Layout for Insert Frame
-Label(insert_frame, text="Insert Data", font=("Helvetica", 16)).pack(pady=20)
-
-# Insert All Data Button
-Button(insert_frame, text="Insert All Data", command=insert_data_into_all_tables).pack(pady=10)
-feedback_insert_all = Label(insert_frame, text="", fg="green")
+ctk.CTkLabel(insert_frame, text="Insert Data", font=ctk.CTkFont(size=20, weight="bold")).pack(pady=20)
+ctk.CTkButton(insert_frame, text="Insert All Data", command=insert_data_into_all_tables, width=200).pack(pady=10)
+feedback_insert_all = ctk.CTkLabel(insert_frame, text="", text_color="green")
 feedback_insert_all.pack(pady=10)
 
 # Dropdown for specific table insertion
-Label(insert_frame, text="Insert into Specific Table:").pack(pady=5)
-table_dropdown = ttk.Combobox(insert_frame, values=list(INSERT_DATA_SQL.keys()), state="readonly")
+ctk.CTkLabel(insert_frame, text="Insert into Specific Table:").pack(pady=5)
+table_dropdown = ctk.CTkOptionMenu(insert_frame, values=list(INSERT_DATA_SQL.keys()))
 table_dropdown.set("Select a table")
 table_dropdown.pack(pady=10)
-Button(insert_frame, text="Insert Data into Selected Table", command=insert_data_into_selected_table).pack(pady=10)
-feedback_table_insert = Label(insert_frame, text="", fg="green")
+ctk.CTkButton(insert_frame, text="Insert Data into Selected Table", command=insert_data_into_selected_table, width=200).pack(pady=10)
+feedback_table_insert = ctk.CTkLabel(insert_frame, text="", text_color="green")
 feedback_table_insert.pack(pady=10)
-
-Button(insert_frame, text="Back", command=lambda: raise_frame(main_frame)).pack(pady=20)
+ctk.CTkButton(insert_frame, text="Back", command=lambda: raise_frame(main_frame), width=200).pack(pady=20)
 
 # GUI Layout for Query Frame
-Label(query_frame, text="Query Data from Table", font=("Helvetica", 16)).pack(pady=20)
-query_table_dropdown = ttk.Combobox(query_frame, values=list(INSERT_DATA_SQL.keys()), state="readonly")
+ctk.CTkLabel(query_frame, text="Query Data from Table", font=ctk.CTkFont(size=20, weight="bold")).pack(pady=20)
+query_table_dropdown = ctk.CTkOptionMenu(query_frame, values=list(INSERT_DATA_SQL.keys()))
 query_table_dropdown.set("Select a table")
 query_table_dropdown.pack(pady=10)
-Button(query_frame, text="Query Data", command=query_data).pack(pady=10)
-feedback_query = Label(query_frame, text="", fg="green")
+ctk.CTkButton(query_frame, text="Query Data", command=query_data, width=200).pack(pady=10)
+feedback_query = ctk.CTkLabel(query_frame, text="", text_color="green")
 feedback_query.pack(pady=10)
-Button(query_frame, text="Back", command=lambda: raise_frame(main_frame)).pack(pady=20)
+ctk.CTkButton(query_frame, text="Back", command=lambda: raise_frame(main_frame), width=200).pack(pady=20)
 
 # GUI Layout for Advance Query Data Frame
-Label(advance_query_frame, text="Advance Query Data", font=("Helvetica", 16)).pack(pady=20)
-Label(advance_query_frame, text="Enter your custom SQL query below:").pack(pady=10)
-custom_query_entry = Text(advance_query_frame, height=10, width=60)
+ctk.CTkLabel(advance_query_frame, text="Advance Query Data", font=ctk.CTkFont(size=20, weight="bold")).pack(pady=20)
+ctk.CTkLabel(advance_query_frame, text="Enter your custom SQL query below:").pack(pady=10)
+custom_query_entry = ctk.CTkTextbox(advance_query_frame, height=300, width=600)
 custom_query_entry.pack(pady=10)
-Button(advance_query_frame, text="Execute Query", command=advance_query_data).pack(pady=10)
-feedback_advance_query = Label(advance_query_frame, text="", fg="green")
+ctk.CTkButton(advance_query_frame, text="Execute Query", command=advance_query_data, width=200).pack(pady=10)
+feedback_advance_query = ctk.CTkLabel(advance_query_frame, text="", text_color="green")
 feedback_advance_query.pack(pady=10)
-Button(advance_query_frame, text="Back", command=lambda: raise_frame(main_frame)).pack(pady=20)
+ctk.CTkButton(advance_query_frame, text="Back", command=lambda: raise_frame(main_frame), width=200).pack(pady=20)
 
 # GUI Layout for Update Frame
-Label(update_frame, text="Update Records in Table", font=("Helvetica", 16)).pack(pady=20)
-Label(update_frame, text="Select a table to update:").pack(pady=10)
-
-update_table_dropdown = ttk.Combobox(update_frame, values=list(INSERT_DATA_SQL.keys()), state="readonly")
+ctk.CTkLabel(update_frame, text="Update Records in Table", font=ctk.CTkFont(size=20, weight="bold")).pack(pady=20)
+ctk.CTkLabel(update_frame, text="Select a table to update:").pack(pady=10)
+update_table_dropdown = ctk.CTkOptionMenu(update_frame, values=list(INSERT_DATA_SQL.keys()))
 update_table_dropdown.set("Select a table")
 update_table_dropdown.pack(pady=10)
-
-Label(update_frame, text="Enter your SQL UPDATE query below:").pack(pady=10)
-update_query_entry = Text(update_frame, height=5, width=60)
+ctk.CTkLabel(update_frame, text="Enter your SQL UPDATE query below:").pack(pady=10)
+update_query_entry = ctk.CTkTextbox(update_frame, height=100, width=500)
 update_query_entry.pack(pady=10)
-
-Button(update_frame, text="Execute Update", command=update_data).pack(pady=10)
-feedback_update = Label(update_frame, text="", fg="green")
+ctk.CTkButton(update_frame, text="Execute Update", command=update_data, width=200).pack(pady=10)
+feedback_update = ctk.CTkLabel(update_frame, text="", text_color="green")
 feedback_update.pack(pady=10)
-
-Button(update_frame, text="Back", command=lambda: raise_frame(main_frame)).pack(pady=20)
+ctk.CTkButton(update_frame, text="Back", command=lambda: raise_frame(main_frame), width=200).pack(pady=20)
 
 # GUI Layout for Show Table Data Frame
-show_table_frame = Frame(root)
-
-Label(show_table_frame, text="Show Table Data", font=("Helvetica", 16)).pack(pady=20)
-Label(show_table_frame, text="Select a table to display data:").pack(pady=10)
-
-show_table_dropdown = ttk.Combobox(show_table_frame, values=list(INSERT_DATA_SQL.keys()), state="readonly")
+ctk.CTkLabel(show_table_frame, text="Show Table Data", font=ctk.CTkFont(size=20, weight="bold")).pack(pady=20)
+ctk.CTkLabel(show_table_frame, text="Select a table to display data:").pack(pady=10)
+show_table_dropdown = ctk.CTkOptionMenu(show_table_frame, values=list(INSERT_DATA_SQL.keys()))
 show_table_dropdown.set("Select a table")
 show_table_dropdown.pack(pady=10)
-
-Button(show_table_frame, text="Show Data", command=show_table_data).pack(pady=10)
-feedback_show_table = Label(show_table_frame, text="", fg="green")
+ctk.CTkButton(show_table_frame, text="Show Data", command=show_table_data, width=200).pack(pady=10)
+feedback_show_table = ctk.CTkLabel(show_table_frame, text="", text_color="green")
 feedback_show_table.pack(pady=10)
+ctk.CTkButton(show_table_frame, text="Back", command=lambda: raise_frame(main_frame), width=200).pack(pady=20)
 
-Button(show_table_frame, text="Back", command=lambda: raise_frame(main_frame)).pack(pady=20)
-
-
+# Ensure frames are instances of CTkFrame
 for frame in (login_frame, main_frame, create_frame, drop_frame, insert_frame, query_frame, advance_query_frame, update_frame, show_table_frame):
-    frame.grid(row=0, column=0, sticky='news')
+    frame.grid(row=0, column=0, sticky='nsew')
 
+# Configure root to allow responsive resizing
+root.grid_rowconfigure(0, weight=1)
+root.grid_columnconfigure(0, weight=1)
 
-
-# Start the application
+# Start the application with the login frame
 raise_frame(login_frame)
 root.mainloop()
