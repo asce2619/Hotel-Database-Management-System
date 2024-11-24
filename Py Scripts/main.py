@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import *
 from tkinter import ttk  # For dropdown functionality
 import cx_Oracle
+import pandas as pd
 
 # Initialize Oracle client
 cx_Oracle.init_oracle_client(lib_dir="/Users/n/Hotel DBMS/Hotel-Database-Management-System/oracle_client")
@@ -280,7 +281,6 @@ def insert_data_into_selected_table():
         feedback_table_insert.config(text=f"Error: {error.message}", fg="red")
 
 
-# Function to query data from selected table
 def query_data():
     selected_table = query_table_dropdown.get()
     if selected_table == "Select a table":
@@ -289,23 +289,31 @@ def query_data():
     try:
         cursor.execute(f"SELECT * FROM {selected_table}")
         rows = cursor.fetchall()
-        # Format and display the query result
-        result_window = Toplevel(root)
-        result_window.title(f"Data from {selected_table}")
-        result_window.geometry("600x400")
-        text = Text(result_window, wrap=NONE)
-        text.pack(fill=BOTH, expand=True)
-        scrollbar_y = Scrollbar(result_window, orient=VERTICAL, command=text.yview)
-        scrollbar_y.pack(side=RIGHT, fill=Y)
-        scrollbar_x = Scrollbar(result_window, orient=HORIZONTAL, command=text.xview)
-        scrollbar_x.pack(side=BOTTOM, fill=X)
-        text.config(yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
-
+        columns = [desc[0] for desc in cursor.description]  # Extract column names
+        
         if rows:
-            for row in rows:
-                text.insert(END, f"{row}\n")
+            # Use pandas to create a DataFrame
+            df = pd.DataFrame(rows, columns=columns)
+
+            # Display DataFrame in a new window
+            result_window = Toplevel(root)
+            result_window.title(f"Data from {selected_table}")
+            result_window.geometry("800x400")
+
+            text = Text(result_window, wrap=NONE)
+            text.pack(fill=BOTH, expand=True)
+            text.insert(END, df.to_string(index=False))  # Insert tabular data into the Text widget
+
+            # Add scrollbars
+            scrollbar_y = Scrollbar(result_window, orient=VERTICAL, command=text.yview)
+            scrollbar_y.pack(side=RIGHT, fill=Y)
+            scrollbar_x = Scrollbar(result_window, orient=HORIZONTAL, command=text.xview)
+            scrollbar_x.pack(side=BOTTOM, fill=X)
+            text.config(yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+
+            feedback_query.config(text="Query executed successfully!", fg="green")
         else:
-            text.insert(END, "No data found.")
+            feedback_query.config(text="No data found for the query.", fg="red")
     except cx_Oracle.DatabaseError as e:
         error, = e.args
         feedback_query.config(text=f"Error: {error.message}", fg="red")
@@ -318,27 +326,34 @@ def advance_query_data():
     try:
         cursor.execute(query)
         rows = cursor.fetchall()
-        # Display results in a new window
-        result_window = Toplevel(root)
-        result_window.title("Query Results")
-        result_window.geometry("600x400")
-        text = Text(result_window, wrap=NONE)
-        text.pack(fill=BOTH, expand=True)
-        scrollbar_y = Scrollbar(result_window, orient=VERTICAL, command=text.yview)
-        scrollbar_y.pack(side=RIGHT, fill=Y)
-        scrollbar_x = Scrollbar(result_window, orient=HORIZONTAL, command=text.xview)
-        scrollbar_x.pack(side=BOTTOM, fill=X)
-        text.config(yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
-
+        columns = [desc[0] for desc in cursor.description]  # Extract column names
+        
         if rows:
-            for row in rows:
-                text.insert(END, f"{row}\n")
+            # Use pandas to create a DataFrame
+            df = pd.DataFrame(rows, columns=columns)
+
+            # Display DataFrame in a new window
+            result_window = Toplevel(root)
+            result_window.title("Advanced Query Results")
+            result_window.geometry("800x400")
+
+            text = Text(result_window, wrap=NONE)
+            text.pack(fill=BOTH, expand=True)
+            text.insert(END, df.to_string(index=False))  # Insert tabular data into the Text widget
+
+            # Add scrollbars
+            scrollbar_y = Scrollbar(result_window, orient=VERTICAL, command=text.yview)
+            scrollbar_y.pack(side=RIGHT, fill=Y)
+            scrollbar_x = Scrollbar(result_window, orient=HORIZONTAL, command=text.xview)
+            scrollbar_x.pack(side=BOTTOM, fill=X)
+            text.config(yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+
+            feedback_advance_query.config(text="Query executed successfully!", fg="green")
         else:
-            text.insert(END, "No data found.")
+            feedback_advance_query.config(text="No data found for the query.", fg="red")
     except cx_Oracle.DatabaseError as e:
         error, = e.args
         feedback_advance_query.config(text=f"Error: {error.message}", fg="red")
-
 
 
 # Logout and close connection
