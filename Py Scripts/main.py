@@ -132,18 +132,25 @@ DROP_TABLES_SQL = [
     "DROP TABLE Hotel CASCADE CONSTRAINTS"
 ]
 
+# Insert sample data
+INSERT_DATA_SQL = [
+    "INSERT INTO Hotel VALUES (1, 'Grand Plaza', '123 Main St')",
+    "INSERT INTO Guest VALUES (1, 'John Doe', '123-456-7890')"
+]
+
 # Creating application frames
 login_frame = Frame(root)
 main_frame = Frame(root)
 create_frame = Frame(root)
 drop_frame = Frame(root)
+insert_frame = Frame(root)
 
 # Function to raise frames
 def raise_frame(frame):
     frame.tkraise()
 
 # Initialize frames in the window
-for frame in (login_frame, main_frame, create_frame, drop_frame):
+for frame in (login_frame, main_frame, create_frame, drop_frame, insert_frame):
     frame.grid(row=0, column=0, sticky='news')
 
 # Function to connect to the database
@@ -191,6 +198,17 @@ def drop_tables():
         error, = e.args
         feedback_drop.config(text=f"Error: {error.message}", fg="red")
 
+# Function to insert data
+def insert_data():
+    try:
+        for sql in INSERT_DATA_SQL:
+            cursor.execute(sql)
+        connection.commit()
+        feedback_insert.config(text="Data inserted successfully!", fg="green")
+    except cx_Oracle.DatabaseError as e:
+        error, = e.args
+        feedback_insert.config(text=f"Error: {error.message}", fg="red")
+
 # Logout and close connection
 def logout():
     try:
@@ -216,6 +234,7 @@ feedback_label.pack(pady=10)
 Label(main_frame, text="Hotel DBMS Main Menu", font=("Helvetica", 16)).pack(pady=20)
 Button(main_frame, text="Create Tables", command=lambda: raise_frame(create_frame)).pack(pady=10)
 Button(main_frame, text="Drop Tables", command=lambda: raise_frame(drop_frame)).pack(pady=10)
+Button(main_frame, text="Insert Data", command=lambda: raise_frame(insert_frame)).pack(pady=10)
 Button(main_frame, text="Logout", command=logout).pack(pady=20)
 
 # GUI Layout for Create Frame
@@ -231,6 +250,13 @@ Button(drop_frame, text="Drop All Tables", command=drop_tables).pack(pady=10)
 feedback_drop = Label(drop_frame, text="", fg="green")
 feedback_drop.pack(pady=10)
 Button(drop_frame, text="Back", command=lambda: raise_frame(main_frame)).pack(pady=20)
+
+# GUI Layout for Insert Frame
+Label(insert_frame, text="Insert Data", font=("Helvetica", 16)).pack(pady=20)
+Button(insert_frame, text="Insert Sample Data", command=insert_data).pack(pady=10)
+feedback_insert = Label(insert_frame, text="", fg="green")
+feedback_insert.pack(pady=10)
+Button(insert_frame, text="Back", command=lambda: raise_frame(main_frame)).pack(pady=20)
 
 # Start the Application
 raise_frame(login_frame)
