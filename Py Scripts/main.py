@@ -134,9 +134,49 @@ DROP_TABLES_SQL = [
 
 # Insert sample data
 INSERT_DATA_SQL = [
-    "INSERT INTO Hotel VALUES (1, 'Grand Plaza', '123 Main St')",
-    "INSERT INTO Guest VALUES (1, 'John Doe', '123-456-7890')"
+    "INSERT INTO Hotel VALUES (26, 'Sunshine', '123 Main Street')",
+    "INSERT INTO Hotel VALUES (17, 'Moonlight', '21 Ashmore Street')",
+    "INSERT INTO Hotel VALUES (39, 'DayNight', '19 Clearview Street')",
+    "INSERT INTO Room VALUES (1, 'UNOCCUPIED', 2, 26)",
+    "INSERT INTO Room VALUES (2, 'UNOCCUPIED', 3, 17)",
+    "INSERT INTO Room VALUES (3, 'UNOCCUPIED', 4, 39)",
+    "INSERT INTO Guest VALUES (1, 'Jannis Saini', '(416) 123-4567')",
+    "INSERT INTO Guest VALUES (2, 'Rose Pagano', '(647) 649-8888')",
+    "INSERT INTO Guest VALUES (3, 'Nitya Malik', '(647) 829-3721')",
+    "INSERT INTO Hotel_Service VALUES (101, 'Room Cleaning', 50)",
+    "INSERT INTO Hotel_Service VALUES (102, 'Laundry', 30)",
+    "INSERT INTO Hotel_Service VALUES (103, 'Spa Services', 100)",
+    "INSERT INTO Staff VALUES (201, 'John Doe', 3000, 26)",
+    "INSERT INTO Staff VALUES (202, 'Jane Smith', 3500, 17)",
+    "INSERT INTO Staff VALUES (203, 'Emily Brown', 3200, 39)",
+    "INSERT INTO Staff_Role VALUES (301, 'Manager', 'Administration', 201)",
+    "INSERT INTO Staff_Role VALUES (302, 'Receptionist', 'Front Desk', 202)",
+    "INSERT INTO Staff_Role VALUES (303, 'Cleaner', 'Housekeeping', 203)",
+    "INSERT INTO Supplier VALUES (401, 'Bedsheets', 26, 1001)",
+    "INSERT INTO Supplier VALUES (402, 'Shampoo', 17, 1002)",
+    "INSERT INTO Supplier VALUES (403, 'Soap Bars', 39, 1003)",
+    "INSERT INTO Inventory_Details VALUES (501, 26, 'Bedsheets', 50, 'Satisfactory')",
+    "INSERT INTO Inventory_Details VALUES (502, 17, 'Shampoos', 30, 'Refill Required')",
+    "INSERT INTO Inventory_Details VALUES (503, 39, 'Soap Bars', 100, 'Satisfactory')",
+    "INSERT INTO Order_Hotel_Mapping VALUES (1001, 26)",
+    "INSERT INTO Order_Hotel_Mapping VALUES (1002, 17)",
+    "INSERT INTO Order_Hotel_Mapping VALUES (1003, 39)",
+    "INSERT INTO Reservation_Details VALUES (701, 26, 1, 1, 'RESERVED', 500, TO_DATE('2024-11-01', 'YYYY-MM-DD'), TO_DATE('2024-11-05', 'YYYY-MM-DD'))",
+    "INSERT INTO Reservation_Details VALUES (702, 17, 2, 2, 'RESERVED', 750, TO_DATE('2024-10-15', 'YYYY-MM-DD'), TO_DATE('2024-10-20', 'YYYY-MM-DD'))",
+    "INSERT INTO Room_Hotel_Mapping VALUES (1, 26)",
+    "INSERT INTO Room_Hotel_Mapping VALUES (2, 17)",
+    "INSERT INTO Room_Hotel_Mapping VALUES (3, 39)",
+    "INSERT INTO Guest_Reservation_Mapping VALUES (1, 701)",
+    "INSERT INTO Guest_Reservation_Mapping VALUES (2, 702)",
+    "INSERT INTO Other_Guests VALUES ('Anna White', '(905) 555-6789', 1)",
+    "INSERT INTO Other_Guests VALUES ('Mark Green', '(416) 456-7890', 2)",
+    "INSERT INTO Payment VALUES (601, TO_DATE('2024-09-30', 'YYYY-MM-DD'), 'CASH', 1)",
+    "INSERT INTO Payment VALUES (602, TO_DATE('2024-10-15', 'YYYY-MM-DD'), 'CREDIT', 2)",
+    "INSERT INTO Check_in_out VALUES (701, 'OCCUPIED', 'Checked-in')",
+    "INSERT INTO Check_in_out VALUES (702, 'UNOCCUPIED', 'Checked-out')"
 ]
+
+
 
 # Creating application frames
 login_frame = Frame(root)
