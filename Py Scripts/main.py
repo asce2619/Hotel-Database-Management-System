@@ -204,8 +204,10 @@ main_frame = Frame(root)
 create_frame = Frame(root)
 drop_frame = Frame(root)
 insert_frame = Frame(root)
-query_frame = Frame(root)  #new
-advance_query_frame = Frame(root)  #new
+query_frame = Frame(root)  
+advance_query_frame = Frame(root) 
+update_frame = Frame(root)  # New 
+
 
 
 # Function to raise frames
@@ -355,6 +357,57 @@ def advance_query_data():
         error, = e.args
         feedback_advance_query.config(text=f"Error: {error.message}", fg="red")
 
+def update_data():
+    selected_table = update_table_dropdown.get()
+    update_query = update_query_entry.get("1.0", END).strip()
+    if selected_table == "Select a table" or not update_query:
+        feedback_update.config(text="Please select a table and provide an update query!", fg="red")
+        return
+    try:
+        cursor.execute(update_query)
+        connection.commit()
+        feedback_update.config(text=f"Record updated successfully in {selected_table}!", fg="green")
+    except cx_Oracle.DatabaseError as e:
+        error, = e.args
+        feedback_update.config(text=f"Error: {error.message}", fg="red")
+
+def show_table_data():
+    selected_table = show_table_dropdown.get()
+    if selected_table == "Select a table":
+        feedback_show_table.config(text="Please select a table to display data!", fg="red")
+        return
+    try:
+        cursor.execute(f"SELECT * FROM {selected_table}")
+        rows = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]  # Extract column names
+        
+        if rows:
+            # Use pandas to create a DataFrame
+            df = pd.DataFrame(rows, columns=columns)
+
+            # Display DataFrame in a new window
+            result_window = Toplevel(root)
+            result_window.title(f"Data from {selected_table}")
+            result_window.geometry("800x400")
+
+            text = Text(result_window, wrap=NONE)
+            text.pack(fill=BOTH, expand=True)
+            text.insert(END, df.to_string(index=False))  # Insert tabular data into the Text widget
+
+            # Add scrollbars
+            scrollbar_y = Scrollbar(result_window, orient=VERTICAL, command=text.yview)
+            scrollbar_y.pack(side=RIGHT, fill=Y)
+            scrollbar_x = Scrollbar(result_window, orient=HORIZONTAL, command=text.xview)
+            scrollbar_x.pack(side=BOTTOM, fill=X)
+            text.config(yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+
+            feedback_show_table.config(text="Data displayed successfully!", fg="green")
+        else:
+            feedback_show_table.config(text="No data found for the selected table.", fg="red")
+    except cx_Oracle.DatabaseError as e:
+        error, = e.args
+        feedback_show_table.config(text=f"Error: {error.message}", fg="red")
+
 
 # Logout and close connection
 def logout():
@@ -385,7 +438,10 @@ Button(main_frame, text="Drop Tables", command=lambda: raise_frame(drop_frame)).
 Button(main_frame, text="Insert Data", command=lambda: raise_frame(insert_frame)).pack(pady=10)
 Button(main_frame, text="Query Data", command=lambda: raise_frame(query_frame)).pack(pady=10)
 Button(main_frame, text="Advance Query Data", command=lambda: raise_frame(advance_query_frame)).pack(pady=10)  # New
+Button(main_frame, text="Update Table", command=lambda: raise_frame(update_frame)).pack(pady=10)
+Button(main_frame, text="Show Table Data", command=lambda: raise_frame(show_table_frame)).pack(pady=10)
 Button(main_frame, text="Logout", command=logout).pack(pady=20)
+
 
 
 # GUI Layout for Create Frame
@@ -441,9 +497,44 @@ feedback_advance_query = Label(advance_query_frame, text="", fg="green")
 feedback_advance_query.pack(pady=10)
 Button(advance_query_frame, text="Back", command=lambda: raise_frame(main_frame)).pack(pady=20)
 
+# GUI Layout for Update Frame
+Label(update_frame, text="Update Records in Table", font=("Helvetica", 16)).pack(pady=20)
+Label(update_frame, text="Select a table to update:").pack(pady=10)
 
-for frame in (login_frame, main_frame, create_frame, drop_frame, insert_frame, query_frame, advance_query_frame):
+update_table_dropdown = ttk.Combobox(update_frame, values=list(INSERT_DATA_SQL.keys()), state="readonly")
+update_table_dropdown.set("Select a table")
+update_table_dropdown.pack(pady=10)
+
+Label(update_frame, text="Enter your SQL UPDATE query below:").pack(pady=10)
+update_query_entry = Text(update_frame, height=5, width=60)
+update_query_entry.pack(pady=10)
+
+Button(update_frame, text="Execute Update", command=update_data).pack(pady=10)
+feedback_update = Label(update_frame, text="", fg="green")
+feedback_update.pack(pady=10)
+
+Button(update_frame, text="Back", command=lambda: raise_frame(main_frame)).pack(pady=20)
+
+# GUI Layout for Show Table Data Frame
+show_table_frame = Frame(root)
+
+Label(show_table_frame, text="Show Table Data", font=("Helvetica", 16)).pack(pady=20)
+Label(show_table_frame, text="Select a table to display data:").pack(pady=10)
+
+show_table_dropdown = ttk.Combobox(show_table_frame, values=list(INSERT_DATA_SQL.keys()), state="readonly")
+show_table_dropdown.set("Select a table")
+show_table_dropdown.pack(pady=10)
+
+Button(show_table_frame, text="Show Data", command=show_table_data).pack(pady=10)
+feedback_show_table = Label(show_table_frame, text="", fg="green")
+feedback_show_table.pack(pady=10)
+
+Button(show_table_frame, text="Back", command=lambda: raise_frame(main_frame)).pack(pady=20)
+
+
+for frame in (login_frame, main_frame, create_frame, drop_frame, insert_frame, query_frame, advance_query_frame, update_frame, show_table_frame):
     frame.grid(row=0, column=0, sticky='news')
+
 
 
 # Start the application
