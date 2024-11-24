@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import *
+from tkinter import ttk  # For dropdown functionality
 import cx_Oracle
 
 # Initialize Oracle client
@@ -10,7 +11,6 @@ root = Tk()
 root.title('Hotel DBMS GUI')
 root.geometry("600x400")
 
-# SQL commands for creating tables
 CREATE_TABLES_SQL = [
     """CREATE TABLE Hotel (
         Hotel_ID NUMBER PRIMARY KEY,
@@ -24,15 +24,15 @@ CREATE_TABLES_SQL = [
         Hotel_ID NUMBER NOT NULL,
         FOREIGN KEY (Hotel_ID) REFERENCES Hotel(Hotel_ID)
     )""",
-    """CREATE TABLE Hotel_Service (
-        Service_ID NUMBER PRIMARY KEY,
-        Service_Description VARCHAR2(100) NOT NULL,
-        Ser_Cost NUMBER NOT NULL
-    )""",
     """CREATE TABLE Guest (
         Guest_ID NUMBER PRIMARY KEY,
         G_Name VARCHAR2(50) NOT NULL,
         ContactInfo VARCHAR2(50)
+    )""",
+    """CREATE TABLE Hotel_Service (
+        Service_ID NUMBER PRIMARY KEY,
+        Service_Description VARCHAR2(100) NOT NULL,
+        Ser_Cost NUMBER NOT NULL
     )""",
     """CREATE TABLE Staff (
         Staff_ID NUMBER PRIMARY KEY,
@@ -53,7 +53,7 @@ CREATE_TABLES_SQL = [
         Items_Supplied VARCHAR2(20),
         Hotel_ID NUMBER NOT NULL,
         Order_No NUMBER NOT NULL PRIMARY KEY,
-        CONSTRAINT Hotel_Supplied FOREIGN KEY (Hotel_ID) REFERENCES Hotel(Hotel_ID)
+        FOREIGN KEY (Hotel_ID) REFERENCES Hotel(Hotel_ID)
     )""",
     """CREATE TABLE Inventory_Details (
         Inventory_ID NUMBER PRIMARY KEY,
@@ -113,7 +113,7 @@ CREATE_TABLES_SQL = [
     )"""
 ]
 
-# SQL commands for dropping tables
+
 DROP_TABLES_SQL = [
     "DROP TABLE Check_in_out CASCADE CONSTRAINTS",
     "DROP TABLE Guest_Reservation_Mapping CASCADE CONSTRAINTS",
@@ -132,50 +132,69 @@ DROP_TABLES_SQL = [
     "DROP TABLE Hotel CASCADE CONSTRAINTS"
 ]
 
-# Insert sample data
-INSERT_DATA_SQL = [
-    "INSERT INTO Hotel VALUES (26, 'Sunshine', '123 Main Street')",
-    "INSERT INTO Hotel VALUES (17, 'Moonlight', '21 Ashmore Street')",
-    "INSERT INTO Hotel VALUES (39, 'DayNight', '19 Clearview Street')",
-    "INSERT INTO Room VALUES (1, 'UNOCCUPIED', 2, 26)",
-    "INSERT INTO Room VALUES (2, 'UNOCCUPIED', 3, 17)",
-    "INSERT INTO Room VALUES (3, 'UNOCCUPIED', 4, 39)",
-    "INSERT INTO Guest VALUES (1, 'Jannis Saini', '(416) 123-4567')",
-    "INSERT INTO Guest VALUES (2, 'Rose Pagano', '(647) 649-8888')",
-    "INSERT INTO Guest VALUES (3, 'Nitya Malik', '(647) 829-3721')",
-    "INSERT INTO Hotel_Service VALUES (101, 'Room Cleaning', 50)",
-    "INSERT INTO Hotel_Service VALUES (102, 'Laundry', 30)",
-    "INSERT INTO Hotel_Service VALUES (103, 'Spa Services', 100)",
-    "INSERT INTO Staff VALUES (201, 'John Doe', 3000, 26)",
-    "INSERT INTO Staff VALUES (202, 'Jane Smith', 3500, 17)",
-    "INSERT INTO Staff VALUES (203, 'Emily Brown', 3200, 39)",
-    "INSERT INTO Staff_Role VALUES (301, 'Manager', 'Administration', 201)",
-    "INSERT INTO Staff_Role VALUES (302, 'Receptionist', 'Front Desk', 202)",
-    "INSERT INTO Staff_Role VALUES (303, 'Cleaner', 'Housekeeping', 203)",
-    "INSERT INTO Supplier VALUES (401, 'Bedsheets', 26, 1001)",
-    "INSERT INTO Supplier VALUES (402, 'Shampoo', 17, 1002)",
-    "INSERT INTO Supplier VALUES (403, 'Soap Bars', 39, 1003)",
-    "INSERT INTO Inventory_Details VALUES (501, 26, 'Bedsheets', 50, 'Satisfactory')",
-    "INSERT INTO Inventory_Details VALUES (502, 17, 'Shampoos', 30, 'Refill Required')",
-    "INSERT INTO Inventory_Details VALUES (503, 39, 'Soap Bars', 100, 'Satisfactory')",
-    "INSERT INTO Order_Hotel_Mapping VALUES (1001, 26)",
-    "INSERT INTO Order_Hotel_Mapping VALUES (1002, 17)",
-    "INSERT INTO Order_Hotel_Mapping VALUES (1003, 39)",
-    "INSERT INTO Reservation_Details VALUES (701, 26, 1, 1, 'RESERVED', 500, TO_DATE('2024-11-01', 'YYYY-MM-DD'), TO_DATE('2024-11-05', 'YYYY-MM-DD'))",
-    "INSERT INTO Reservation_Details VALUES (702, 17, 2, 2, 'RESERVED', 750, TO_DATE('2024-10-15', 'YYYY-MM-DD'), TO_DATE('2024-10-20', 'YYYY-MM-DD'))",
-    "INSERT INTO Room_Hotel_Mapping VALUES (1, 26)",
-    "INSERT INTO Room_Hotel_Mapping VALUES (2, 17)",
-    "INSERT INTO Room_Hotel_Mapping VALUES (3, 39)",
-    "INSERT INTO Guest_Reservation_Mapping VALUES (1, 701)",
-    "INSERT INTO Guest_Reservation_Mapping VALUES (2, 702)",
-    "INSERT INTO Other_Guests VALUES ('Anna White', '(905) 555-6789', 1)",
-    "INSERT INTO Other_Guests VALUES ('Mark Green', '(416) 456-7890', 2)",
-    "INSERT INTO Payment VALUES (601, TO_DATE('2024-09-30', 'YYYY-MM-DD'), 'CASH', 1)",
-    "INSERT INTO Payment VALUES (602, TO_DATE('2024-10-15', 'YYYY-MM-DD'), 'CREDIT', 2)",
-    "INSERT INTO Check_in_out VALUES (701, 'OCCUPIED', 'Checked-in')",
-    "INSERT INTO Check_in_out VALUES (702, 'UNOCCUPIED', 'Checked-out')"
-]
 
+INSERT_DATA_SQL = {
+    "Hotel": [
+        "INSERT INTO Hotel VALUES (1, 'Hotel Sunshine', '123 Main Street')",
+        "INSERT INTO Hotel VALUES (2, 'Hotel Moonlight', '456 Oak Avenue')",
+    ],
+    "Room": [
+        "INSERT INTO Room VALUES (101, 'UNOCCUPIED', 2, 1)",
+        "INSERT INTO Room VALUES (102, 'UNOCCUPIED', 4, 2)",
+    ],
+    "Guest": [
+        "INSERT INTO Guest VALUES (1, 'John Doe', '123-456-7890')",
+        "INSERT INTO Guest VALUES (2, 'Jane Smith', '987-654-3210')"
+    ],
+    "Hotel_Service": [
+        "INSERT INTO Hotel_Service VALUES (201, 'Room Cleaning', 20)",
+        "INSERT INTO Hotel_Service VALUES (202, 'Laundry', 15)"
+    ],
+    "Staff": [
+        "INSERT INTO Staff VALUES (301, 'Alice Johnson', 5000, 1)",
+        "INSERT INTO Staff VALUES (302, 'Bob Brown', 4000, 2)"
+    ],
+    "Staff_Role": [
+        "INSERT INTO Staff_Role VALUES (401, 'Manager', 'Administration', 301)",
+        "INSERT INTO Staff_Role VALUES (402, 'Receptionist', 'Front Desk', 302)"
+    ],
+    "Supplier": [
+        "INSERT INTO Supplier VALUES (501, 'Bedsheets', 1, 1001)",
+        "INSERT INTO Supplier VALUES (502, 'Shampoo', 2, 1002)"
+    ],
+    "Inventory_Details": [
+        "INSERT INTO Inventory_Details VALUES (601, 1, 'Bedsheets', 50, 'Satisfactory')",
+        "INSERT INTO Inventory_Details VALUES (602, 2, 'Shampoo', 30, 'Refill Required')"
+    ],
+    "Order_Hotel_Mapping": [
+        "INSERT INTO Order_Hotel_Mapping VALUES (1001, 1)",
+        "INSERT INTO Order_Hotel_Mapping VALUES (1002, 2)"
+    ],
+    "Other_Guests": [
+        "INSERT INTO Other_Guests VALUES ('Charlie White', '555-123-4567', 1)",
+        "INSERT INTO Other_Guests VALUES ('Daisy Green', '555-987-6543', 2)"
+    ],
+    "Payment": [
+        "INSERT INTO Payment VALUES (1101, TO_DATE('2024-01-01', 'YYYY-MM-DD'), 'Cash', 1)",
+        "INSERT INTO Payment VALUES (1102, TO_DATE('2024-01-02', 'YYYY-MM-DD'), 'Card', 2)"
+    ],
+    "Reservation_Details": [
+        "INSERT INTO Reservation_Details VALUES (1201, 1, 1, 101, 'RESERVED', 200, TO_DATE('2024-02-01', 'YYYY-MM-DD'), TO_DATE('2024-02-03', 'YYYY-MM-DD'))",
+        "INSERT INTO Reservation_Details VALUES (1202, 2, 2, 102, 'RESERVED', 300, TO_DATE('2024-03-01', 'YYYY-MM-DD'), TO_DATE('2024-03-04', 'YYYY-MM-DD'))"
+    ],
+    "Room_Hotel_Mapping": [
+        "INSERT INTO Room_Hotel_Mapping VALUES (101, 1)",
+        "INSERT INTO Room_Hotel_Mapping VALUES (102, 2)"
+    ],
+    "Guest_Reservation_Mapping": [
+        "INSERT INTO Guest_Reservation_Mapping VALUES (1, 1201)",
+        "INSERT INTO Guest_Reservation_Mapping VALUES (2, 1202)"
+    ],
+    "Check_in_out": [
+        "INSERT INTO Check_in_out VALUES (1201, 'OCCUPIED', 'Checked-in')",
+        "INSERT INTO Check_in_out VALUES (1202, 'RESERVED', 'Checked-out')"
+    ]
+}
 
 
 # Creating application frames
@@ -189,32 +208,23 @@ insert_frame = Frame(root)
 def raise_frame(frame):
     frame.tkraise()
 
-# Initialize frames in the window
-for frame in (login_frame, main_frame, create_frame, drop_frame, insert_frame):
-    frame.grid(row=0, column=0, sticky='news')
-
 # Function to connect to the database
 def connect_to_db():
+    global connection, cursor
     username = user_entry.get()
     password = pwd_entry.get()
     try:
-        global connection, cursor
         connection = cx_Oracle.connect(
             user=username,
             password=password,
             dsn="(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=oracle.scs.ryerson.ca)(PORT=1521))(CONNECT_DATA=(SID=orcl)))"
         )
-        if connection.version:
-            cursor = connection.cursor()
-            feedback_label.config(text="Login successful!", fg="green")
-            raise_frame(main_frame)
-        else:
-            feedback_label.config(text="Login failed. Please try again.", fg="red")
+        cursor = connection.cursor()
+        feedback_label.config(text="Login successful!", fg="green")
+        raise_frame(main_frame)
     except cx_Oracle.DatabaseError as e:
         error, = e.args
         feedback_label.config(text=f"Error: {error.message}", fg="red")
-        user_entry.delete(0, END)
-        pwd_entry.delete(0, END)
 
 # Function to create tables
 def create_tables():
@@ -222,7 +232,7 @@ def create_tables():
         for sql in CREATE_TABLES_SQL:
             cursor.execute(sql)
         connection.commit()
-        feedback_create.config(text="All tables created successfully!", fg="green")
+        feedback_create.config(text="Tables created successfully!", fg="green")
     except cx_Oracle.DatabaseError as e:
         error, = e.args
         feedback_create.config(text=f"Error: {error.message}", fg="red")
@@ -230,24 +240,39 @@ def create_tables():
 # Function to drop tables
 def drop_tables():
     try:
-        for sql in reversed(DROP_TABLES_SQL):
+        for sql in DROP_TABLES_SQL:
             cursor.execute(sql)
         connection.commit()
-        feedback_drop.config(text="All tables dropped successfully!", fg="green")
+        feedback_drop.config(text="Tables dropped successfully!", fg="green")
     except cx_Oracle.DatabaseError as e:
         error, = e.args
         feedback_drop.config(text=f"Error: {error.message}", fg="red")
 
-# Function to insert data
-def insert_data():
+# Function to insert data into all tables
+def insert_data_into_all_tables():
     try:
-        for sql in INSERT_DATA_SQL:
-            cursor.execute(sql)
+        for table, queries in INSERT_DATA_SQL.items():
+            for query in queries:
+                cursor.execute(query)
         connection.commit()
-        feedback_insert.config(text="Data inserted successfully!", fg="green")
+        feedback_insert_all.config(text="Data inserted into all tables successfully!", fg="green")
+    except cx_Oracle.DatabaseError as e:
+        feedback_insert_all.config(text=f"Error: {e}", fg="red")
+ 
+# Function to insert data into selected table
+def insert_data_into_selected_table():
+    selected_table = table_dropdown.get()
+    if selected_table == "Select a table":
+        feedback_table_insert.config(text="Please select a table!", fg="red")
+        return
+    try:
+        for query in INSERT_DATA_SQL.get(selected_table, []):
+            cursor.execute(query)
+        connection.commit()
+        feedback_table_insert.config(text=f"Data inserted into {selected_table} successfully!", fg="green")
     except cx_Oracle.DatabaseError as e:
         error, = e.args
-        feedback_insert.config(text=f"Error: {error.message}", fg="red")
+        feedback_table_insert.config(text=f"Error: {error.message}", fg="red")
 
 # Logout and close connection
 def logout():
@@ -293,11 +318,27 @@ Button(drop_frame, text="Back", command=lambda: raise_frame(main_frame)).pack(pa
 
 # GUI Layout for Insert Frame
 Label(insert_frame, text="Insert Data", font=("Helvetica", 16)).pack(pady=20)
-Button(insert_frame, text="Insert Sample Data", command=insert_data).pack(pady=10)
-feedback_insert = Label(insert_frame, text="", fg="green")
-feedback_insert.pack(pady=10)
+
+# Insert All Data Button
+Button(insert_frame, text="Insert All Data", command=insert_data_into_all_tables).pack(pady=10)
+feedback_insert_all = Label(insert_frame, text="", fg="green")
+feedback_insert_all.pack(pady=10)
+
+# Dropdown for specific table insertion
+Label(insert_frame, text="Insert into Specific Table:").pack(pady=5)
+table_dropdown = ttk.Combobox(insert_frame, values=list(INSERT_DATA_SQL.keys()), state="readonly")
+table_dropdown.set("Select a table")
+table_dropdown.pack(pady=10)
+Button(insert_frame, text="Insert Data into Selected Table", command=insert_data_into_selected_table).pack(pady=10)
+feedback_table_insert = Label(insert_frame, text="", fg="green")
+feedback_table_insert.pack(pady=10)
+
 Button(insert_frame, text="Back", command=lambda: raise_frame(main_frame)).pack(pady=20)
 
-# Start the Application
+# Initialize all frames
+for frame in (login_frame, main_frame, create_frame, drop_frame, insert_frame):
+    frame.grid(row=0, column=0, sticky='news')
+
+# Start the application
 raise_frame(login_frame)
 root.mainloop()
