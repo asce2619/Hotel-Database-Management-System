@@ -2,179 +2,188 @@ import tkinter as tk
 from tkinter import *
 import cx_Oracle
 
-# Initialize Oracle client with the versioned path directly
+# Initialize Oracle client
 cx_Oracle.init_oracle_client(lib_dir="/Users/n/Hotel DBMS/Hotel-Database-Management-System/oracle_client")
 
+# Create main root window
 root = Tk()
 root.title('Hotel DBMS GUI')
-root.geometry("570x310")
+root.geometry("600x400")
 
-OPTIONS = [""]  # This will be populated with table names later
+# List of dynamic options (tables fetched from the database)
+OPTIONS = [""]
 
-# Creating window frames
-login = Frame(root)
-mainwindow = Frame(root)
-query_page = Frame(root)
-create_page = Frame(root)
-alter_page = Frame(root)
-drop_page = Frame(root)
+# Creating application frames
+login_frame = Frame(root)
+main_frame = Frame(root)
+query_frame = Frame(root)
+create_frame = Frame(root)
+alter_frame = Frame(root)
+drop_frame = Frame(root)
 
-# Function to switch frames
-def frameraise(frame):
+# Function to raise frames
+def raise_frame(frame):
     frame.tkraise()
 
-# Manage frames
-for frame in (login, mainwindow, query_page, alter_page, drop_page):
+# Initialize frames in the window
+for frame in (login_frame, main_frame, query_frame, create_frame, alter_frame, drop_frame):
     frame.grid(row=0, column=0, sticky='news')
 
-# Create function to handle login
-def create_connection():
-    global username, password, cursor, connection
-    username = user.get()
-    password = pwd.get()
+# Function to connect to the database
+def connect_to_db():
+    # Extract username and password from entry fields
+    username = user_entry.get()
+    password = pwd_entry.get()
+
+    # Attempt to establish a connection
     try:
-        connection = cx_Oracle.connect(user=username, password=password, dsn="(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=oracle.scs.ryerson.ca)(PORT=1521))(CONNECT_DATA=(SID=orcl)))")
-        if connection.version != 0:
-            print(connection.version)
+        # Connect to Oracle DB
+        global connection, cursor
+        connection = cx_Oracle.connect(
+            user=username,
+            password=password,
+            dsn="(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=oracle.scs.ryerson.ca)(PORT=1521))(CONNECT_DATA=(SID=orcl)))"
+        )
+
+        # Check if the connection was successful
+        if connection.version:
+            print(f"Connected to Oracle DB, version: {connection.version}")
             cursor = connection.cursor()
-            frameraise(mainwindow)
-            result.config(width=60, height=5)
-            result2.config(width=60, height=5)
-            cursor.execute("select table_name from user_tables order by table_name")
-            optionList = cursor.fetchall()
-            for string in optionList:
-                OPTIONS.append(string)
-            OPTIONS.remove("")
-            updateMenu()
+            feedback_label.config(text="Login successful!", fg="green")
+
+            # Fetch table names to populate dropdown options
+            cursor.execute("SELECT table_name FROM user_tables ORDER BY table_name")
+            tables = cursor.fetchall()
+            OPTIONS.clear()
+            OPTIONS.extend([table[0] for table in tables])
+
+            # Update dropdown menus in the GUI
+            update_menu()
+
+            # Switch to the main menu frame
+            raise_frame(main_frame)
+        else:
+            feedback_label.config(text="Login failed. Please try again.", fg="red")
+    except cx_Oracle.DatabaseError as e:
+        # Handle connection errors
+        error, = e.args
+        feedback_label.config(text=f"Error: {error.message}", fg="red")
+
+        # Clear input fields to prompt for correct login credentials
+        user_entry.delete(0, END)
+        pwd_entry.delete(0, END)
+
+# Update dropdown menus with fetched table names
+def update_menu():
+    query_menu["menu"].delete(0, "end")
+    alter_menu["menu"].delete(0, "end")
+    for table_name in OPTIONS:
+        query_menu["menu"].add_command(label=table_name, command=tk._setit(selected_table, table_name))
+        alter_menu["menu"].add_command(label=table_name, command=tk._setit(selected_alter_table, table_name))
+    if OPTIONS:
+        selected_table.set(OPTIONS[0])
+        selected_alter_table.set(OPTIONS[0])
+
+# Query table function
+def query_table():
+    table_name = selected_table.get()
+    result_text.config(state=NORMAL)
+    result_text.delete("1.0", END)
+    try:
+        cursor.execute(f"SELECT * FROM {table_name}")
+        rows = cursor.fetchall()
+        for row in rows:
+            result_text.insert(END, f"{row}\n")
     except Exception as e:
-        print(f"Error: {e}")  # Print the error to debug
-        ins["text"] = "Invalid username/password. Please Try Again"
-        user.delete(0, END)
-        pwd.delete(0, END)
+        result_text.insert(END, f"Query error: {e}")
+    result_text.config(state=DISABLED)
 
-# Query table
-def query_click():
-    translated_query = table.get().translate({ord("'"): None, ord(','): None, ord('('): None, ord(')'): None})
-    query = f'select * from {translated_query}'
-    result.config(state=NORMAL)
-    if result.get('1.0', END) != '':
-        result.delete('1.0', END)
+# Create test table function
+def create_test_table():
     try:
-        cursor.execute(query)
-        row = cursor.fetchall()
-        result.insert(END, row)
-    except:
-        result.insert(END, "Query Command is incorrect or table does not exist")
-    result.config(state=DISABLED)
-
-# Create table
-def insert_click():
-    sql_create = 'CREATE TABLE TEST_ROOM (RoomNumber VARCHAR2(50), Price INT)'
-    if result.get('1.0', END) != '':
-        result.delete('1.0', END)
-    try:
-        cursor.execute(sql_create)
-        updateLabel['text'] = "Table Created"
+        cursor.execute("CREATE TABLE TEST_ROOM (RoomNumber VARCHAR2(50), Price INT)")
+        connection.commit()
+        feedback_main.config(text="Table 'TEST_ROOM' created.", fg="green")
         OPTIONS.append("TEST_ROOM")
-        updateMenu()
-    except:
-        updateLabel['text'] = "Table already exists"
+        update_menu()
+    except Exception as e:
+        feedback_main.config(text=f"Error creating table: {e}", fg="red")
 
-# Drop table
-def drop_click():
-    sql_drop = "DROP TABLE TEST_ROOM"
+# Drop test table function
+def drop_test_table():
     try:
-        cursor.execute(sql_drop)
-        updateLabel['text'] = 'Table Dropped'
+        cursor.execute("DROP TABLE TEST_ROOM")
+        connection.commit()
+        feedback_main.config(text="Table 'TEST_ROOM' dropped.", fg="green")
         OPTIONS.remove("TEST_ROOM")
-        updateMenu()
+        update_menu()
+    except Exception as e:
+        feedback_main.config(text=f"Error dropping table: {e}", fg="red")
+
+# Populate table (Alter example)
+def populate_table():
+    table_name = selected_alter_table.get()
+    data = [("101", 150), ("102", 200), ("103", 250)]
+    feedback_alter.config(text="", fg="green")
+    try:
+        for room, price in data:
+            cursor.execute(f"INSERT INTO {table_name} (RoomNumber, Price) VALUES (:1, :2)", (room, price))
+        connection.commit()
+        feedback_alter.config(text="Data inserted successfully!", fg="green")
+    except Exception as e:
+        feedback_alter.config(text=f"Error inserting data: {e}", fg="red")
+
+# Logout and close connection
+def logout():
+    try:
+        cursor.close()
+        connection.close()
     except:
-        updateLabel['text'] = "Table does not exist"
-
-# Alter table
-def alter_click():
-    buffer = targetTable.get()
-    values = ["('101', 150)", "('102', 200)", "('103', 250)"]
-    result2.config(state=NORMAL)
-    if result2.get('1.0', END) != '':
-        result2.delete('1.0', END)
-    for value in values:
-        sql_alter = f"INSERT INTO {buffer}(RoomNumber, Price) VALUES {value}"
-        try:
-            cursor.execute(sql_alter)
-            connection.commit()
-            result2.insert(END, f'Inserted: {value}, ')
-        except:
-            result2.insert(END, f"Error with: {sql_alter}")
-            break
-    result2.config(state=DISABLED)
-
-# Exit application
-def exit_click():
-    cursor.close()
-    connection.close()
-    close_window()
-
-def close_window():
+        pass
     root.quit()
-    exit(0)
 
-def updateMenu():
-    tables_ddown["menu"].delete(0, "end")
-    alter_ddown["menu"].delete(0, "end")
-    for string in OPTIONS:
-        tables_ddown["menu"].add_command(label=string, command=tk._setit(table, string))
-        alter_ddown["menu"].add_command(label=string, command=tk._setit(targetTable, string))
-    table.set(OPTIONS[0])
-    targetTable.set(OPTIONS[0])
+# GUI Layout for Login Frame
+Label(login_frame, text="Hotel DBMS Login", font=("Helvetica", 16)).pack(pady=20)
+Label(login_frame, text="Username:").pack()
+user_entry = Entry(login_frame, width=30)
+user_entry.pack(pady=5)
+Label(login_frame, text="Password:").pack()
+pwd_entry = Entry(login_frame, show='*', width=30)
+pwd_entry.pack(pady=5)
+Button(login_frame, text="Login", command=connect_to_db).pack(pady=20)
+feedback_label = Label(login_frame, text="", fg="red")
+feedback_label.pack(pady=10)
 
-root.protocol("WM_DELETE_WINDOW", close_window)
+# GUI Layout for Main Frame
+Label(main_frame, text="Hotel DBMS Main Menu", font=("Helvetica", 16)).pack(pady=20)
+Button(main_frame, text="Query Table", command=lambda: raise_frame(query_frame)).pack(pady=10)
+Button(main_frame, text="Create Test Table", command=create_test_table).pack(pady=10)
+Button(main_frame, text="Drop Test Table", command=drop_test_table).pack(pady=10)
+Button(main_frame, text="Alter Table", command=lambda: raise_frame(alter_frame)).pack(pady=10)
+Button(main_frame, text="Logout", command=logout).pack(pady=20)
+feedback_main = Label(main_frame, text="", fg="green")
+feedback_main.pack(pady=10)
 
-# Login page GUI
-welcome = Label(login, text='Welcome to Hotel DBMS GUI.')
-ins = Label(login, text="Enter your username and password")
-user_frame = Frame(login)
-user_text = Label(user_frame, text='Username')
-user = Entry(user_frame, width=20)
-user_text.pack(side=LEFT, padx=5)
-user.pack(side=RIGHT, padx=5)
-pass_frame = Frame(login)
-pass_text = Label(pass_frame, text='Password')
-pwd = Entry(pass_frame, show='*', width=20)
-pass_text.pack(side=LEFT, padx=5)
-pwd.pack(side=RIGHT, padx=5)
-login_button = Button(login, text='Login', command=create_connection)
+# GUI Layout for Query Frame
+Label(query_frame, text="Query a Table", font=("Helvetica", 16)).pack(pady=20)
+selected_table = StringVar(query_frame)
+query_menu = OptionMenu(query_frame, selected_table, *OPTIONS)
+query_menu.pack(pady=10)
+Button(query_frame, text="Run Query", command=query_table).pack(pady=10)
+result_text = Text(query_frame, wrap=WORD, width=60, height=10, state=DISABLED)
+result_text.pack(pady=10)
+Button(query_frame, text="Back", command=lambda: raise_frame(main_frame)).pack(pady=20)
 
-# Main window GUI
-to_query = Button(mainwindow, text='Query Table', width=30, command=lambda: frameraise(query_page))
-to_create = Button(mainwindow, text='Create Table', width=30, command=insert_click)
-to_alter = Button(mainwindow, text='Alter Table', width=30, command=lambda: frameraise(alter_page))
-to_drop = Button(mainwindow, text='Drop Table', width=30, command=drop_click)
-introLabel = Label(mainwindow, text="Welcome to the Hotel DBMS")
-updateLabel = Label(mainwindow, text="Select an option")
-exit_button = Button(mainwindow, text='Exit', width=30, command=exit_click)
+# GUI Layout for Alter Frame
+Label(alter_frame, text="Alter a Table (Insert Data)", font=("Helvetica", 16)).pack(pady=20)
+selected_alter_table = StringVar(alter_frame)
+alter_menu = OptionMenu(alter_frame, selected_alter_table, *OPTIONS)
+alter_menu.pack(pady=10)
+Button(alter_frame, text="Insert Data", command=populate_table).pack(pady=10)
+feedback_alter = Label(alter_frame, text="", fg="green")
+feedback_alter.pack(pady=10)
+Button(alter_frame, text="Back", command=lambda: raise_frame(main_frame)).pack(pady=20)
 
-# Query page GUI
-query_button = Button(query_page, text='Query', width=30, command=query_click)
-result = Text(query_page, wrap=WORD, height=0, width=0, state=DISABLED)
-table = StringVar(query_page)
-tables_ddown = OptionMenu(query_page, table, *OPTIONS)
-back_button = Button(query_page, text='Back', width=30, command=lambda: frameraise(mainwindow))
-
-# Alter page GUI
-alter_button = Button(alter_page, text='Populate Table', width=30, command=alter_click)
-result2 = Text(alter_page, wrap=WORD, height=0, width=0, state=DISABLED)
-targetTable = StringVar(alter_page)
-alter_ddown = OptionMenu(alter_page, targetTable, *OPTIONS)
-back_button2 = Button(alter_page, text='Back', width=30, command=lambda: frameraise(mainwindow))
-
-# Drop page GUI
-drop_button = Button(drop_page, text='Drop Table', width=30, command=drop_click)
-back_button3 = Button(drop_page, text='Back', width=30, command=lambda: frameraise(mainwindow))
-
-# Layout for each frame
-# (Similar layout logic as in your original script)
-
-# Initialize application
-frameraise(login)
+# Start the Application
+raise_frame(login_frame)
 root.mainloop()
