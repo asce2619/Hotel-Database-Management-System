@@ -203,6 +203,9 @@ main_frame = Frame(root)
 create_frame = Frame(root)
 drop_frame = Frame(root)
 insert_frame = Frame(root)
+query_frame = Frame(root)  #new
+advance_query_frame = Frame(root)  #new
+
 
 # Function to raise frames
 def raise_frame(frame):
@@ -258,6 +261,8 @@ def insert_data_into_all_tables():
         feedback_insert_all.config(text="Data inserted into all tables successfully!", fg="green")
     except cx_Oracle.DatabaseError as e:
         feedback_insert_all.config(text=f"Error: {e}", fg="red")
+
+
  
 # Function to insert data into selected table
 def insert_data_into_selected_table():
@@ -273,6 +278,68 @@ def insert_data_into_selected_table():
     except cx_Oracle.DatabaseError as e:
         error, = e.args
         feedback_table_insert.config(text=f"Error: {error.message}", fg="red")
+
+
+# Function to query data from selected table
+def query_data():
+    selected_table = query_table_dropdown.get()
+    if selected_table == "Select a table":
+        feedback_query.config(text="Please select a table to query!", fg="red")
+        return
+    try:
+        cursor.execute(f"SELECT * FROM {selected_table}")
+        rows = cursor.fetchall()
+        # Format and display the query result
+        result_window = Toplevel(root)
+        result_window.title(f"Data from {selected_table}")
+        result_window.geometry("600x400")
+        text = Text(result_window, wrap=NONE)
+        text.pack(fill=BOTH, expand=True)
+        scrollbar_y = Scrollbar(result_window, orient=VERTICAL, command=text.yview)
+        scrollbar_y.pack(side=RIGHT, fill=Y)
+        scrollbar_x = Scrollbar(result_window, orient=HORIZONTAL, command=text.xview)
+        scrollbar_x.pack(side=BOTTOM, fill=X)
+        text.config(yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+
+        if rows:
+            for row in rows:
+                text.insert(END, f"{row}\n")
+        else:
+            text.insert(END, "No data found.")
+    except cx_Oracle.DatabaseError as e:
+        error, = e.args
+        feedback_query.config(text=f"Error: {error.message}", fg="red")
+
+def advance_query_data():
+    query = custom_query_entry.get("1.0", END).strip()
+    if not query:
+        feedback_advance_query.config(text="Please enter a query!", fg="red")
+        return
+    try:
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        # Display results in a new window
+        result_window = Toplevel(root)
+        result_window.title("Query Results")
+        result_window.geometry("600x400")
+        text = Text(result_window, wrap=NONE)
+        text.pack(fill=BOTH, expand=True)
+        scrollbar_y = Scrollbar(result_window, orient=VERTICAL, command=text.yview)
+        scrollbar_y.pack(side=RIGHT, fill=Y)
+        scrollbar_x = Scrollbar(result_window, orient=HORIZONTAL, command=text.xview)
+        scrollbar_x.pack(side=BOTTOM, fill=X)
+        text.config(yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+
+        if rows:
+            for row in rows:
+                text.insert(END, f"{row}\n")
+        else:
+            text.insert(END, "No data found.")
+    except cx_Oracle.DatabaseError as e:
+        error, = e.args
+        feedback_advance_query.config(text=f"Error: {error.message}", fg="red")
+
+
 
 # Logout and close connection
 def logout():
@@ -296,11 +363,15 @@ feedback_label = Label(login_frame, text="", fg="red")
 feedback_label.pack(pady=10)
 
 # GUI Layout for Main Frame
+# GUI Layout for Main Frame
 Label(main_frame, text="Hotel DBMS Main Menu", font=("Helvetica", 16)).pack(pady=20)
 Button(main_frame, text="Create Tables", command=lambda: raise_frame(create_frame)).pack(pady=10)
 Button(main_frame, text="Drop Tables", command=lambda: raise_frame(drop_frame)).pack(pady=10)
 Button(main_frame, text="Insert Data", command=lambda: raise_frame(insert_frame)).pack(pady=10)
+Button(main_frame, text="Query Data", command=lambda: raise_frame(query_frame)).pack(pady=10)
+Button(main_frame, text="Advance Query Data", command=lambda: raise_frame(advance_query_frame)).pack(pady=10)  # New
 Button(main_frame, text="Logout", command=logout).pack(pady=20)
+
 
 # GUI Layout for Create Frame
 Label(create_frame, text="Create Tables", font=("Helvetica", 16)).pack(pady=20)
@@ -335,9 +406,30 @@ feedback_table_insert.pack(pady=10)
 
 Button(insert_frame, text="Back", command=lambda: raise_frame(main_frame)).pack(pady=20)
 
-# Initialize all frames
-for frame in (login_frame, main_frame, create_frame, drop_frame, insert_frame):
+# GUI Layout for Query Frame
+Label(query_frame, text="Query Data from Table", font=("Helvetica", 16)).pack(pady=20)
+query_table_dropdown = ttk.Combobox(query_frame, values=list(INSERT_DATA_SQL.keys()), state="readonly")
+query_table_dropdown.set("Select a table")
+query_table_dropdown.pack(pady=10)
+Button(query_frame, text="Query Data", command=query_data).pack(pady=10)
+feedback_query = Label(query_frame, text="", fg="green")
+feedback_query.pack(pady=10)
+Button(query_frame, text="Back", command=lambda: raise_frame(main_frame)).pack(pady=20)
+
+# GUI Layout for Advance Query Data Frame
+Label(advance_query_frame, text="Advance Query Data", font=("Helvetica", 16)).pack(pady=20)
+Label(advance_query_frame, text="Enter your custom SQL query below:").pack(pady=10)
+custom_query_entry = Text(advance_query_frame, height=10, width=60)
+custom_query_entry.pack(pady=10)
+Button(advance_query_frame, text="Execute Query", command=advance_query_data).pack(pady=10)
+feedback_advance_query = Label(advance_query_frame, text="", fg="green")
+feedback_advance_query.pack(pady=10)
+Button(advance_query_frame, text="Back", command=lambda: raise_frame(main_frame)).pack(pady=20)
+
+
+for frame in (login_frame, main_frame, create_frame, drop_frame, insert_frame, query_frame, advance_query_frame):
     frame.grid(row=0, column=0, sticky='news')
+
 
 # Start the application
 raise_frame(login_frame)
