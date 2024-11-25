@@ -2,7 +2,7 @@
 
 ### Table of Contents
 - [Purpose](https://github.com/asce2619/Hotel-Database-Management-System#Purpose)
-- [Languages and tools](https://github.com/asce2619/Hotel-Database-Management-System#Languages-and-Tools)
+- [Languages and Tools](https://github.com/asce2619/Hotel-Database-Management-System#Languages-and-Tools)
 - [Functionality](https://github.com/asce2619/Hotel-Database-Management-System#Functionality)
 - [Preview](https://github.com/asce2619/Hotel-Database-Management-System#Preview)
 - [Authors](https://github.com/asce2619/Hotel-Database-Management-System#Authors)
